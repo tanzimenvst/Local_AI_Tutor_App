@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Tutor - AI Tutor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header-nav">
+            <span>{{ user['display_name'] }}</span>
+            {% if user['is_admin'] %}
+            <a href="{{ url_for('admin') }}" target="_blank">Admin Panel</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+
+        <div class="tutor-list">
+            {% for tutor in tutors if tutor['tutor_type'] == 'general' %}
+                <a href="{{ url_for('chat', tutor_id=tutor['id']) }}" class="tutor-card" style="border-color: var(--primary); background: rgba(129, 140, 248, 0.1);">
+                    <strong>{{ tutor['name'] }}</strong>
+                    <span class="badge" style="background: var(--primary); color: white;">General</span>
+                </a>
+            {% endfor %}
+
+            {% set personal_tutors = tutors | selectattr('tutor_type', 'ne', 'general') | list %}
+            {% if personal_tutors %}
+                <div style="margin: 1rem 0; display: flex; align-items: center; gap: 1rem;">
+                    <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+                    <span style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Assigned Tutors</span>
+                    <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+                </div>
+
+                {% for tutor in personal_tutors %}
+                    <a href="{{ url_for('chat', tutor_id=tutor['id']) }}" class="tutor-card">
+                        <strong>{{ tutor['name'] }}</strong>
+                        <span class="badge">{{ tutor['tutor_type'] }}</span>
+                    </a>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

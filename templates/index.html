@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ tutor['name'] }} - AI Tutor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+    <div class="container chat-container">
+        <div class="header-nav" style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
+            <div style="font-size: 1.25rem; font-weight: bold; color: white;">
+                {{ user['display_name'] }}'s {{ tutor['name'] }}
+            </div>
+            
+            <div class="dropdown" style="position: relative;">
+                <button id="menuBtn" style="background: none; border: none; font-size: 1.5rem; color: var(--primary); cursor: pointer; padding: 0 0.5rem;">⋮</button>
+                <div id="dropdownMenu" style="display: none; position: absolute; right: 0; top: 100%; background: #1e293b; border: 1px solid var(--card-border); border-radius: 8px; padding: 0.5rem; flex-direction: column; gap: 0.25rem; z-index: 100; min-width: 150px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                    {% if user['is_admin'] %}
+                    <a href="{{ url_for('admin') }}" target="_blank" style="color: white; text-decoration: none; padding: 0.5rem; border-radius: 4px; display: block;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">Admin Panel</a>
+                    {% endif %}
+                    <a href="{{ url_for('home') }}" style="color: white; text-decoration: none; padding: 0.5rem; border-radius: 4px; display: block;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">Switch Tutor</a>
+                    <a href="{{ url_for('clear_chat', tutor_id=tutor['id']) }}" style="color: white; text-decoration: none; padding: 0.5rem; border-radius: 4px; display: block;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">Clear Chat</a>
+                    <a href="{{ url_for('logout') }}" style="color: #ef4444; text-decoration: none; padding: 0.5rem; border-radius: 4px; display: block;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">Logout</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="chatHistory" class="chat-history">
+            {% if messages %}
+                {% for msg in messages %}
+                    <div class="chat-bubble bubble-user">
+                        {{ msg['prompt'] }}
+                    </div>
+                    <div class="chat-bubble bubble-tutor">
+                        {{ msg['response'] | replace('\n', '<br>') | safe }}
+                        {% if msg['audio_url'] %}
+                        <br><br><audio controls src="{{ msg['audio_url'] }}" style="width: 100%; height: 35px;"></audio>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            <!-- Messages will be appended here dynamically -->
+        </div>
+
+        <form id="chatForm" method="post" style="display: flex; flex-direction: column;">
+            <div style="display: flex; gap: 0.75rem; align-items: flex-end;">
+                
+                <textarea id="promptInput" name="prompt" placeholder="Message your tutor..." rows="2"
+                    style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 12px; padding: 0.75rem; color: white; resize: none; height: 72px; min-height: 72px; max-height: 216px; overflow-y: auto; outline: none; line-height: 1.5;"></textarea>
+
+                <div id="audioPreviewContainer" style="display: none; flex: 1; background: rgba(0,0,0,0.2); border: 1px solid var(--card-border); border-radius: 12px; padding: 0.75rem; height: 72px; align-items: center; gap: 1rem;">
+                    <audio id="audioPreviewPlayer" controls style="flex: 1; height: 40px;"></audio>
+                    <button type="button" id="cancelAudioBtn" class="icon-btn" style="color: #ef4444; width: 31px; height: 31px; font-size: 1rem; background: rgba(239, 68, 68, 0.15); border-radius: 8px; flex-shrink: 0;" title="Cancel">✖</button>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; justify-content: flex-end;">
+                    <button type="button" id="recordBtn" class="icon-btn record-btn" title="Hold to Talk"
+                        style="background: rgba(16, 185, 129, 0.15); border-radius: 8px; margin: 0; width: 31px; height: 31px; font-size: 1rem;">🎤</button>
+                    <button type="submit" id="sendBtn" class="icon-btn" title="Send"
+                        style="background: rgba(129, 140, 248, 0.15); border-radius: 8px; margin: 0; width: 31px; height: 31px; font-size: 1rem;">➤</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const menuBtn = document.getElementById('menuBtn');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        
+        menuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (dropdownMenu.style.display === 'none' || dropdownMenu.style.display === '') {
+                dropdownMenu.style.display = 'flex';
+            } else {
+                dropdownMenu.style.display = 'none';
+            }
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (dropdownMenu.style.display === 'flex' && !dropdownMenu.contains(e.target) && e.target !== menuBtn) {
+                dropdownMenu.style.display = 'none';
+            }
+        });
+
+        const chatForm = document.getElementById('chatForm');
+        const recordBtn = document.getElementById('recordBtn');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatHistory = document.getElementById('chatHistory');
+        const promptInput = document.getElementById('promptInput');
+        const audioPreviewContainer = document.getElementById('audioPreviewContainer');
+        const audioPreviewPlayer = document.getElementById('audioPreviewPlayer');
+
+        // Scroll to bottom on load
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+
+        let currentAudioBlob = null;
+        let isWaitingForServer = false;
+        let isRecording = false;
+        
+        let tempUserBubble = null;
+        let tempTutorBubble = null;
+
+        function showUserTyping(text) {
+            removeUserTyping();
+            tempUserBubble = document.createElement('div');
+            tempUserBubble.className = 'chat-bubble bubble-user';
+            tempUserBubble.innerHTML = `<em>${text}</em>`;
+            chatHistory.appendChild(tempUserBubble);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function removeUserTyping() {
+            if (tempUserBubble) {
+                tempUserBubble.remove();
+                tempUserBubble = null;
+            }
+        }
+
+        function showTutorTyping(text) {
+            removeTutorTyping();
+            tempTutorBubble = document.createElement('div');
+            tempTutorBubble.className = 'chat-bubble bubble-tutor';
+            tempTutorBubble.innerHTML = `<em style="color: #94a3b8;">${text}</em>`;
+            chatHistory.appendChild(tempTutorBubble);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function removeTutorTyping() {
+            if (tempTutorBubble) {
+                tempTutorBubble.remove();
+                tempTutorBubble = null;
+            }
+        }
+
+        function setUIState(state) {
+            if (state === 'normal') {
+                promptInput.style.display = 'block';
+                audioPreviewContainer.style.display = 'none';
+                recordBtn.style.display = 'flex';
+                
+                promptInput.disabled = false;
+                recordBtn.disabled = false;
+                sendBtn.disabled = false;
+                currentAudioBlob = null;
+            } else if (state === 'preview') {
+                promptInput.style.display = 'none';
+                audioPreviewContainer.style.display = 'flex';
+                recordBtn.style.display = 'none';
+                
+                sendBtn.disabled = false;
+            } else if (state === 'waiting') {
+                promptInput.disabled = true;
+                recordBtn.style.display = 'none';
+                sendBtn.disabled = true;
+                isWaitingForServer = true;
+            }
+        }
+
+        document.getElementById('cancelAudioBtn').addEventListener('click', () => {
+            setUIState('normal');
+        });
+
+        // Auto-resize textarea
+        promptInput.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Submit on Enter, New Line on Shift+Enter
+        promptInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }
+        });
+
+        function appendTutorResponse(response, audio_url) {
+            const tutorBubble = document.createElement('div');
+            tutorBubble.className = 'chat-bubble bubble-tutor';
+            
+            let audioPlayerHtml = '';
+            if (audio_url) {
+                audioPlayerHtml = `<br><br><audio controls src="${audio_url}" style="width: 100%; height: 35px;"></audio>`;
+            }
+            
+            const formattedResponse = response.replace(/\n/g, '<br>');
+            tutorBubble.innerHTML = formattedResponse + audioPlayerHtml;
+            
+            chatHistory.appendChild(tutorBubble);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        chatForm.onsubmit = (e) => {
+            e.preventDefault();
+            if (isWaitingForServer) return;
+
+            const formData = new FormData();
+
+            if (currentAudioBlob) {
+                formData.append('audio', currentAudioBlob, 'recording.webm');
+                
+                // Append user's recorded audio immediately to chat
+                const userAudioUrl = URL.createObjectURL(currentAudioBlob);
+                const userBubble = document.createElement('div');
+                userBubble.className = 'chat-bubble bubble-user';
+                userBubble.innerHTML = `<div style="font-size: 0.8rem; margin-bottom: 5px;"><strong>You (Voice)</strong></div><audio controls src="${userAudioUrl}" style="height: 35px; width: 100%;"></audio>`;
+                chatHistory.appendChild(userBubble);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+                
+                showTutorTyping('Transcribing and thinking...');
+                setUIState('waiting');
+                
+                fetch(window.location.href, { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    isWaitingForServer = false;
+                    removeTutorTyping();
+                    setUIState('normal');
+                    if (data.error) {
+                        alert("Error: " + data.error);
+                        return;
+                    }
+                    
+                    // Add transcription text to the audio bubble
+                    userBubble.innerHTML += `<div style="margin-top: 5px;"><em>"${data.prompt}"</em></div>`;
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                    
+                    appendTutorResponse(data.response, data.audio_url);
+                })
+                .catch(err => {
+                    isWaitingForServer = false;
+                    removeTutorTyping();
+                    setUIState('normal');
+                    alert('Error processing audio.');
+                    console.error(err);
+                });
+                
+                return;
+            }
+
+            // Normal Text Send
+            const text = promptInput.value.trim();
+            if (!text) return;
+
+            const userBubble = document.createElement('div');
+            userBubble.className = 'chat-bubble bubble-user';
+            userBubble.innerText = text;
+            chatHistory.appendChild(userBubble);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            promptInput.value = '';
+            promptInput.style.height = 'auto';
+            
+            showTutorTyping('Thinking...');
+            setUIState('waiting');
+
+            formData.append('prompt', text);
+
+            fetch(window.location.href, { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    isWaitingForServer = false;
+                    removeTutorTyping();
+                    setUIState('normal');
+                    if (data.error) {
+                        alert("Error: " + data.error);
+                        return;
+                    }
+                    appendTutorResponse(data.response, null);
+                })
+                .catch(err => {
+                    isWaitingForServer = false;
+                    removeTutorTyping();
+                    setUIState('normal');
+                    alert('Error processing text.');
+                    console.error(err);
+                });
+        };
+
+        // Voice Recording Logic
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordStartTime = 0;
+        let isRecordingTooShort = false;
+
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    mediaRecorder = new MediaRecorder(stream);
+
+                    mediaRecorder.ondataavailable = e => {
+                        audioChunks.push(e.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        if (isRecordingTooShort) {
+                            audioChunks = []; // Discard
+                            return;
+                        }
+                        
+                        currentAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        audioChunks = [];
+                        
+                        const audioURL = URL.createObjectURL(currentAudioBlob);
+                        audioPreviewPlayer.src = audioURL;
+                        setUIState('preview');
+                    };
+                })
+                .catch(err => {
+                    console.warn("Microphone access denied.", err);
+                    recordBtn.disabled = true;
+                    recordBtn.innerText = "❌";
+                    recordBtn.title = "Mic Unavailable";
+                    recordBtn.style.color = "#94a3b8";
+                });
+        } else {
+            recordBtn.disabled = true;
+            recordBtn.innerText = "❌";
+            recordBtn.title = "Mic Blocked (Needs HTTPS)";
+            recordBtn.style.color = "#94a3b8";
+        }
+
+        recordBtn.onmousedown = (e) => {
+            if (isWaitingForServer) return;
+
+            if (mediaRecorder && mediaRecorder.state === "inactive") {
+                recordStartTime = Date.now();
+                isRecordingTooShort = false;
+                mediaRecorder.start();
+                isRecording = true;
+                recordBtn.style.color = "#ef4444";
+                showUserTyping('🎤 Listening...');
+            }
+        };
+
+        recordBtn.onmouseup = (e) => {
+            if (isWaitingForServer || currentAudioBlob) return;
+            
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                const duration = Date.now() - recordStartTime;
+                if (duration < 500) {
+                    isRecordingTooShort = true;
+                }
+                
+                mediaRecorder.stop();
+                isRecording = false;
+                recordBtn.style.color = "#10b981";
+                removeUserTyping();
+            }
+        };
+
+        // Mobile touch support
+        recordBtn.ontouchstart = (e) => { e.preventDefault(); recordBtn.onmousedown(e); };
+        recordBtn.ontouchend = (e) => { e.preventDefault(); recordBtn.onmouseup(e); };
+    </script>
+</body>
+</html>

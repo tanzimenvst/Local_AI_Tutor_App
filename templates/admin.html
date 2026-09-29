@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - AI Tutor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .admin-section {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--card-border);
+        }
+        .admin-section h2 {
+            margin-top: 0;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 0.5rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+        th, td {
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+        th {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .form-grid textarea {
+            grid-column: span 2;
+        }
+        .form-grid button {
+            grid-column: span 2;
+        }
+        .inline-form {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        .inline-form > div {
+            flex: 1;
+        }
+        .inline-form button {
+            margin-top: 0;
+            margin-bottom: 0.25rem;
+        }
+        select {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--card-border);
+            color: white;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+        }
+        select option {
+            background: #1e1b4b;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 1000px;">
+        <div class="header-nav">
+            <span>{{ user['display_name'] }} (Admin)</span>
+            <a href="{{ url_for('home') }}">Dashboard</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+
+        <h1>Admin Dashboard</h1>
+
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+        {% if message %}
+            <div class="error" style="background: rgba(16, 185, 129, 0.1); color: #34d399; border-color: rgba(16, 185, 129, 0.2);">{{ message }}</div>
+        {% endif %}
+
+        <div class="admin-section">
+            <h2>Assign Tutor to User</h2>
+            <form method="post" action="{{ url_for('admin_assign') }}" class="inline-form">
+                <div>
+                    <label>User</label>
+                    <select name="user_id" required>
+                        {% for u in users %}
+                            <option value="{{ u['id'] }}">{{ u['display_name'] }} ({{ u['username'] }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Tutor</label>
+                    <select name="tutor_id" required>
+                        {% for t in tutors %}
+                            <option value="{{ t['id'] }}">{{ t['name'] }} ({{ t['tutor_type'] }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit">Assign</button>
+            </form>
+        </div>
+
+        <div class="admin-section">
+            <h2>Users</h2>
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Display Name</th>
+                    <th>Admin</th>
+                </tr>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u['id'] }}</td>
+                    <td>{{ u['username'] }}</td>
+                    <td>{{ u['display_name'] }}</td>
+                    <td>{{ 'Yes' if u['is_admin'] else 'No' }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            
+            <form method="post" action="{{ url_for('admin_create_user') }}" class="form-grid">
+                <div>
+                    <label>Username</label>
+                    <input type="text" name="username" required>
+                </div>
+                <div>
+                    <label>Display Name</label>
+                    <input type="text" name="display_name" required>
+                </div>
+                <div>
+                    <label>Password</label>
+                    <input type="password" name="password" required>
+                </div>
+                <div class="checkbox-group" style="padding-top: 2rem;">
+                    <input type="checkbox" name="is_admin" id="is_admin">
+                    <label for="is_admin">Is Admin</label>
+                </div>
+                <button type="submit">Create User</button>
+            </form>
+        </div>
+
+        <div class="admin-section">
+            <h2>Tutors</h2>
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Model</th>
+                </tr>
+                {% for t in tutors %}
+                <tr>
+                    <td>{{ t['id'] }}</td>
+                    <td>{{ t['name'] }}</td>
+                    <td>{{ t['tutor_type'] }}</td>
+                    <td>{{ t['model'] }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+
+            <form method="post" action="{{ url_for('admin_create_tutor') }}" class="form-grid">
+                <div>
+                    <label>Tutor Name</label>
+                    <input type="text" name="name" required placeholder="e.g. Science Tutor">
+                </div>
+                <div>
+                    <label>Tutor Type</label>
+                    <input type="text" name="tutor_type" required placeholder="e.g. science">
+                </div>
+                <div>
+                    <label>Model</label>
+                    <input type="text" name="model" value="qwen3:8b" required>
+                </div>
+                <textarea name="system_prompt" placeholder="System Prompt (Define the tutor's personality and instructions)" required></textarea>
+                <button type="submit">Create Tutor</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
