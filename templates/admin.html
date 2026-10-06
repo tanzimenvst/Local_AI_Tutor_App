@@ -1,192 +1,1260 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - AI Tutor</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        .admin-section {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            border: 1px solid var(--card-border);
+        body {
+            padding: 0.25rem 0.5rem;
         }
-        .admin-section h2 {
-            margin-top: 0;
+
+        /* Base Admin Styles */
+        .admin-container {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            margin-bottom: 2rem;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
             border-bottom: 1px solid var(--card-border);
+            margin-bottom: 1.5rem;
             padding-bottom: 0.5rem;
         }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            background: rgba(129, 140, 248, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* Table */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
         }
-        th, td {
+
+        th,
+        td {
             text-align: left;
-            padding: 0.75rem;
+            padding: 1rem;
             border-bottom: 1px solid var(--card-border);
         }
+
         th {
             color: var(--text-muted);
-            font-weight: 500;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.05em;
         }
+
+        /* Interactive Dropdowns */
+        .select-role {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--card-border);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        /* Tutor Dropdown & Tooltip */
+        .tutor-count {
+            display: inline-block;
+            background: rgba(129, 140, 248, 0.15);
+            color: var(--primary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .tutor-tooltip {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-10px);
+            background: #0f172a;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            white-space: nowrap;
+            z-index: 50;
+            border: 1px solid var(--card-border);
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            font-weight: normal;
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+
+        .tutor-count:hover .tutor-tooltip {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(-5px);
+        }
+
+        /* Checkbox Dropdown */
+        .tutor-dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tutor-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: #1e293b;
+            min-width: 220px;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.5rem;
+            z-index: 100;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            margin-top: 0.5rem;
+        }
+
+        .tutor-dropdown-menu.show {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .tutor-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .tutor-checkbox-label:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tutor-dropdown-actions {
+            margin-top: 0.5rem;
+            border-top: 1px solid var(--card-border);
+            padding-top: 0.5rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        /* Forms */
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
+            background: rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
         }
-        .form-grid textarea {
-            grid-column: span 2;
-        }
+
+        .form-grid textarea,
         .form-grid button {
             grid-column: span 2;
         }
-        .inline-form {
-            display: flex;
-            gap: 1rem;
-            align-items: flex-end;
+
+        .form-grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.5rem;
         }
-        .inline-form > div {
-            flex: 1;
-        }
-        .inline-form button {
-            margin-top: 0;
-            margin-bottom: 0.25rem;
-        }
-        select {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--card-border);
-            color: white;
-            border-radius: 8px;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-        }
-        select option {
-            background: #1e1b4b;
-            color: white;
+
+        .form-grid-3 button {
+            grid-column: span 3;
         }
     </style>
 </head>
+
 <body>
-    <div class="container" style="max-width: 1000px;">
-        <div class="header-nav">
-            <span>{{ user['display_name'] }} (Admin)</span>
-            <a href="{{ url_for('home') }}">Dashboard</a>
-            <a href="{{ url_for('logout') }}">Logout</a>
+    <div style="width: 100%; display: flex; flex-direction: column; align-items: center; padding: 0.5rem 1rem;">
+
+        <div class="admin-container"
+            style="padding-bottom: 0; margin-bottom: 1rem; background: transparent; border: none; box-shadow: none;">
+            <div class="header-nav" style="border-bottom: none; margin: 0; padding: 0; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo"
+                        style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                    <span style="font-size: 1.25rem; font-weight: bold; color: white;">{{ user['display_name'] }}</span>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <a href="{{ url_for('home') }}">Dashboard</a>
+                    <a href="{{ url_for('logout') }}" style="color: #ef4444;">Logout</a>
+                </div>
+            </div>
         </div>
 
-        <h1>Admin Dashboard</h1>
+        <div class="admin-container">
+            <h1 style="margin-bottom: 1.5rem; text-align: left;">Admin Control Panel</h1>
 
-        {% if error %}
-            <div class="error">{{ error }}</div>
-        {% endif %}
-        {% if message %}
-            <div class="error" style="background: rgba(16, 185, 129, 0.1); color: #34d399; border-color: rgba(16, 185, 129, 0.2);">{{ message }}</div>
-        {% endif %}
+            {% if error %}
+            <div class="error" style="margin-bottom: 1.5rem;">{{ error }}</div>
+            {% endif %}
+            {% if message %}
+            <div class="error"
+                style="background: rgba(16, 185, 129, 0.1); color: #34d399; border-color: rgba(16, 185, 129, 0.2); margin-bottom: 1.5rem;">
+                {{ message }}</div>
+            {% endif %}
 
-        <div class="admin-section">
-            <h2>Assign Tutor to User</h2>
-            <form method="post" action="{{ url_for('admin_assign') }}" class="inline-form">
-                <div>
-                    <label>User</label>
-                    <select name="user_id" required>
+            <div class="tabs">
+                <button class="tab-btn {% if request.args.get('tab') != 'tutors' %}active{% endif %}"
+                    onclick="switchTab('users')">Users Management</button>
+                <button class="tab-btn {% if request.args.get('tab') == 'tutors' %}active{% endif %}"
+                    onclick="switchTab('tutors')">Tutors Management</button>
+            </div>
+
+            <!-- USERS TAB -->
+            <div id="tab-users" class="tab-content {% if request.args.get('tab') != 'tutors' %}active{% endif %}">
+                <div style="overflow-x: auto; width: 100%; margin-bottom: 2rem;">
+                    <table>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Display Name</th>
+                            <th style="text-align: center;">Edit</th>
+                            <th style="text-align: center;">Type</th>
+                            <th style="text-align: center;">Tutors ({{ (tutors | selectattr('is_general', 'eq', 0) |
+                                list) | length }})</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
                         {% for u in users %}
-                            <option value="{{ u['id'] }}">{{ u['display_name'] }} ({{ u['username'] }})</option>
+                        <tr>
+                            <td>{{ u['id'] }}</td>
+                            <td>{{ u['username'] }}</td>
+                            <td>{{ u['display_name'] }}</td>
+                            <td style="text-align: center;">
+                                <div class="tutor-dropdown-container">
+                                    <button onclick="toggleDropdown('edit-user-{{ u['id'] }}', this)"
+                                        style="background: none; padding: 0.2rem; font-size: 1.1rem; border: none; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;"
+                                        title="Edit User" onmouseover="this.style.opacity='1'"
+                                        onmouseout="this.style.opacity='0.7'">
+                                        ✏️
+                                    </button>
+
+                                    <form method="post"
+                                        action="{{ url_for('admin_edit_user', target_user_id=u['id']) }}"
+                                        id="edit-user-{{ u['id'] }}" class="tutor-dropdown-menu"
+                                        style="min-width: 250px;">
+                                        <div
+                                            style="font-weight: 600; color: white; margin-bottom: 0.5rem; border-bottom: 1px solid var(--card-border); padding-bottom: 0.25rem;">
+                                            Edit User
+                                        </div>
+                                        <div
+                                            style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                                <label
+                                                    style="font-size: 0.8rem; color: var(--text-muted);">Username</label>
+                                                <input type="text" name="username" value="{{ u['username'] }}" required
+                                                    style="background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); color: white; padding: 0.4rem; border-radius: 4px; font-size: 0.9rem; outline: none;">
+                                            </div>
+                                            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                                <label style="font-size: 0.8rem; color: var(--text-muted);">Display
+                                                    Name</label>
+                                                <input type="text" name="display_name" value="{{ u['display_name'] }}"
+                                                    required
+                                                    style="background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); color: white; padding: 0.4rem; border-radius: 4px; font-size: 0.9rem; outline: none;">
+                                            </div>
+                                            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                                <label style="font-size: 0.8rem; color: var(--text-muted);">New
+                                                    Password</label>
+                                                <input type="password" name="new_password"
+                                                    placeholder="Leave blank to keep current"
+                                                    style="background: rgba(0,0,0,0.3); border: 1px solid var(--card-border); color: white; padding: 0.4rem; border-radius: 4px; font-size: 0.9rem; outline: none;">
+                                            </div>
+                                        </div>
+                                        <div
+                                            style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem;">
+                                            <button type="button"
+                                                style="padding: 0.4rem 0.8rem; border-radius: 4px; border: 1px solid var(--card-border); background: transparent; color: white; cursor: pointer; font-size: 0.85rem;"
+                                                onclick="toggleDropdown('edit-user-{{ u['id'] }}', this)">Cancel</button>
+                                            <button type="submit"
+                                                style="padding: 0.4rem 0.8rem; border-radius: 4px; border: none; background: var(--primary); color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600;">Save</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </td>
+                            <td>
+                                <form method="post" action="{{ url_for('admin_update_user_role') }}" style="margin: 0;">
+                                    <input type="hidden" name="user_id" value="{{ u['id'] }}">
+                                    <select name="is_admin" class="select-role" onchange="this.form.submit()" {% if
+                                        u['id']==user['id'] %}disabled title="You cannot demote yourself" {% endif %}>
+                                        <option value="1" {% if u['is_admin'] %}selected{% endif %}>Admin</option>
+                                        <option value="0" {% if not u['is_admin'] %}selected{% endif %}>User</option>
+                                    </select>
+                                </form>
+                            </td>
+                            <td style="text-align: center;">
+                                <div class="tutor-dropdown-container">
+                                    <div class="tutor-count" onclick="toggleDropdown('tutors-{{ u['id'] }}', this)">
+                                        {{ u['assigned_tutors']|length }}
+                                        {% if u['assigned_tutors']|length > 0 %}
+                                        <div class="tutor-tooltip">
+                                            {% for t in u['assigned_tutors'] %}
+                                            {{ t['name'] }}<br>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <form method="post" action="{{ url_for('admin_update_user_tutors') }}"
+                                        id="tutors-{{ u['id'] }}" class="tutor-dropdown-menu">
+                                        <input type="hidden" name="user_id" value="{{ u['id'] }}">
+                                        <div
+                                            style="font-weight: 600; color: white; margin-bottom: 0.5rem; border-bottom: 1px solid var(--card-border); padding-bottom: 0.25rem;">
+                                            Assign Tutors
+                                        </div>
+                                        <div
+                                            style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.25rem;">
+                                            {% for t in tutors if t['tutor_type'] != 'general' %}
+                                            {% set is_assigned = u['assigned_tutors'] | selectattr('id', 'equalto',
+                                            t['id']) | list | length > 0 %}
+                                            <label class="tutor-checkbox-label">
+                                                <input type="checkbox" name="tutor_ids" value="{{ t['id'] }}" {% if
+                                                    is_assigned %}checked{% endif %} onchange="this.form.submit()">
+                                                {{ t['name'] }}
+                                            </label>
+                                            {% endfor %}
+                                        </div>
+                                    </form>
+                                </div>
+                            </td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <form method="post"
+                                        action="{{ url_for('admin_toggle_block_user', target_user_id=u['id']) }}"
+                                        style="margin: 0;">
+                                        <button type="submit" class="icon-btn"
+                                            style="background: none; padding: 0.25rem; font-size: 1.25rem; border: none; cursor: pointer; opacity: 0.8; transition: opacity 0.2s;"
+                                            title="{{ 'Unblock User' if u['is_blocked'] else 'Block User' }}" {% if
+                                            u['id']==user['id'] %}disabled{% endif %}
+                                            onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
+                                            {{ '🔓' if u['is_blocked'] else '🚫' }}
+                                        </button>
+                                    </form>
+                                    <form method="post"
+                                        action="{{ url_for('admin_delete_user', target_user_id=u['id']) }}"
+                                        style="margin: 0;"
+                                        onsubmit="return confirm('Are you sure you want to completely delete {{ u['username'] }}? This will permanently delete their account and all their chat history audio files.');">
+                                        <button type="submit" class="icon-btn"
+                                            style="background: none; padding: 0.25rem; font-size: 1.25rem; border: none; cursor: pointer; opacity: 0.8; transition: opacity 0.2s;"
+                                            title="Delete User" {% if u['id']==user['id'] %}disabled{% endif %}
+                                            onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
+                                            🗑️
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
                         {% endfor %}
-                    </select>
+                    </table>
                 </div>
-                <div>
-                    <label>Tutor</label>
-                    <select name="tutor_id" required>
+
+                <h2 style="font-size: 1.1rem; margin-bottom: 1rem;">Create New User</h2>
+                <form method="post" action="{{ url_for('admin_create_user') }}" class="form-grid-3">
+                    <div>
+                        <label>Username</label>
+                        <input type="text" name="username" required>
+                    </div>
+                    <div>
+                        <label>Name</label>
+                        <input type="text" name="display_name" required>
+                    </div>
+                    <div>
+                        <label>Password</label>
+                        <input type="password" name="password" required>
+                    </div>
+                    <button type="submit">Create User</button>
+                </form>
+            </div>
+
+            <!-- TUTORS TAB -->
+            <div id="tab-tutors" class="tab-content {% if request.args.get('tab') == 'tutors' %}active{% endif %}">
+                <div style="overflow-x: auto; width: 100%; margin-bottom: 2rem;">
+                    <table>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th style="text-align: center;">Model</th>
+                            <th style="text-align: center;">Edit & Details</th>
+                            <th style="text-align: center;">Users</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
                         {% for t in tutors %}
-                            <option value="{{ t['id'] }}">{{ t['name'] }} ({{ t['tutor_type'] }})</option>
+                        <tr>
+                            <td>{{ t['id'] }}</td>
+                            <td>{{ t['name'] }}</td>
+                            <td>
+                                <form method="post" action="{{ url_for('admin_update_tutor_model') }}"
+                                    style="margin: 0;">
+                                    <input type="hidden" name="tutor_id" value="{{ t['id'] }}">
+                                    <select name="model" class="select-role" onchange="this.form.submit()">
+                                        {% for m in available_models %}
+                                        <option value="{{ m }}" {% if t['model']==m %}selected{% endif %}>
+                                            {{ m }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </form>
+                            </td>
+                            <td style="text-align: center;">
+                                <button type="button"
+                                    onclick="openManageTutorModal({{ t['id'] }}, '{{ t['name'] | replace('\'', '\\\'') }}', `{{ t['system_prompt'] | replace('`', '\\`') }}`, `{{ t['configuration'] | default('') | replace('`', '\\`') }}`)"
+                                    style="background: none; padding: 0.2rem; font-size: 1.1rem; border: none; cursor: pointer; opacity: 0.7; transition: opacity 0.2s;"
+                                    title="Manage Tutor" onmouseover="this.style.opacity='1'"
+                                    onmouseout="this.style.opacity='0.7'">
+                                    ⚙️
+                                </button>
+                            </td>
+                            <td style="text-align: center;"><span class="badge"
+                                    style="background: rgba(129, 140, 248, 0.15); color: var(--primary); padding: 0.25rem 0.75rem;border-radius: 25%;">{{
+                                    t['user_count'] }}</span></td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <form method="post"
+                                        action="{{ url_for('admin_toggle_block_tutor', target_tutor_id=t['id']) }}"
+                                        style="margin: 0;">
+                                        <button type="submit" class="icon-btn"
+                                            style="background: none; padding: 0.25rem; font-size: 1.25rem; border: none; cursor: pointer; opacity: 0.8; transition: opacity 0.2s;"
+                                            title="{{ 'Unblock Tutor' if t['is_blocked'] else 'Block Tutor' }}"
+                                            onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
+                                            {{ '🔓' if t['is_blocked'] else '🚫' }}
+                                        </button>
+                                    </form>
+                                    <form method="post"
+                                        action="{{ url_for('admin_delete_tutor', target_tutor_id=t['id']) }}"
+                                        style="margin: 0;"
+                                        onsubmit="return confirm('Are you sure you want to completely delete {{ t['name'] }}? This will permanently delete the tutor and all its assigned chat history.');">
+                                        <button type="submit" class="icon-btn"
+                                            style="background: none; padding: 0.25rem; font-size: 1.25rem; border: none; cursor: pointer; opacity: 0.8; transition: opacity 0.2s;"
+                                            title="Delete Tutor" onmouseover="this.style.opacity='1'"
+                                            onmouseout="this.style.opacity='0.8'">
+                                            🗑️
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
                         {% endfor %}
-                    </select>
+                    </table>
                 </div>
-                <button type="submit">Assign</button>
-            </form>
-        </div>
 
-        <div class="admin-section">
-            <h2>Users</h2>
-            <table>
-                <tr>
-                    <th>ID</th>
-                    <th>Username</th>
-                    <th>Display Name</th>
-                    <th>Admin</th>
-                </tr>
-                {% for u in users %}
-                <tr>
-                    <td>{{ u['id'] }}</td>
-                    <td>{{ u['username'] }}</td>
-                    <td>{{ u['display_name'] }}</td>
-                    <td>{{ 'Yes' if u['is_admin'] else 'No' }}</td>
-                </tr>
-                {% endfor %}
-            </table>
-            
-            <form method="post" action="{{ url_for('admin_create_user') }}" class="form-grid">
-                <div>
-                    <label>Username</label>
-                    <input type="text" name="username" required>
-                </div>
-                <div>
-                    <label>Display Name</label>
-                    <input type="text" name="display_name" required>
-                </div>
-                <div>
-                    <label>Password</label>
-                    <input type="password" name="password" required>
-                </div>
-                <div class="checkbox-group" style="padding-top: 2rem;">
-                    <input type="checkbox" name="is_admin" id="is_admin">
-                    <label for="is_admin">Is Admin</label>
-                </div>
-                <button type="submit">Create User</button>
-            </form>
-        </div>
+                <h2 style="font-size: 1.1rem; margin: 0; margin-bottom: 1rem;">Create New Tutor</h2>
 
-        <div class="admin-section">
-            <h2>Tutors</h2>
-            <table>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Model</th>
-                </tr>
-                {% for t in tutors %}
-                <tr>
-                    <td>{{ t['id'] }}</td>
-                    <td>{{ t['name'] }}</td>
-                    <td>{{ t['tutor_type'] }}</td>
-                    <td>{{ t['model'] }}</td>
-                </tr>
-                {% endfor %}
-            </table>
+                <div id="ai-builder-section" class="form-grid"
+                    style="background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; border: 1px solid var(--card-border);">
+                    <div
+                        style="grid-column: 1 / -1; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span style="font-size: 1.2rem;">✨</span>
+                        <h3 style="color: white; margin: 0; font-size: 1rem;">AI Tutor Builder</h3>
+                    </div>
+                    <p
+                        style="grid-column: 1 / -1; color: var(--text-muted); font-size: 0.85rem; margin-top: -0.5rem; margin-bottom: 1rem;">
+                        Fill out these 3 fields and the AI will dynamically profile the learner and write the perfect
+                        system prompt for you.</p>
 
-            <form method="post" action="{{ url_for('admin_create_tutor') }}" class="form-grid">
-                <div>
-                    <label>Tutor Name</label>
-                    <input type="text" name="name" required placeholder="e.g. Science Tutor">
+                    <div style="grid-column: 1 / -1;">
+                        <label style="color: var(--text-muted);">1. Who is the learner?</label>
+                        <input type="text" id="wizard-who" list="learner-suggestions"
+                            placeholder="e.g., GIS Developer, University Student" style="background: rgba(0,0,0,0.2);">
+                        <datalist id="learner-suggestions">
+                            {% for l in existing_learners %}
+                            <option value="{{ l }}">
+                                {% endfor %}
+                        </datalist>
+                    </div>
+                    <div style="grid-column: 1 / -1;">
+                        <label style="color: var(--text-muted);">2. Why does the learner need this tutor?</label>
+                        <input type="text" id="wizard-why"
+                            placeholder="e.g., Prepare for a job interview, Practice English"
+                            style="background: rgba(0,0,0,0.2);">
+                    </div>
+                    <div style="grid-column: 1 / -1;">
+                        <label style="color: var(--text-muted);">3. What does the learner want to achieve?</label>
+                        <input type="text" id="wizard-objective"
+                            placeholder="e.g., Become confident in technical whiteboard interviews"
+                            style="background: rgba(0,0,0,0.2);">
+                    </div>
+                    <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+                        <button type="button" onclick="runWizardStep1()" id="btn-step-1"
+                            style="padding: 0.6rem 1.2rem; font-size: 0.9rem; border-radius: 999px; background: linear-gradient(135deg, #6366f1, #a855f7); border: none; font-weight: bold;">Continue
+                            to AI Profiler ➔</button>
+                    </div>
                 </div>
-                <div>
-                    <label>Tutor Type</label>
-                    <input type="text" name="tutor_type" required placeholder="e.g. science">
-                </div>
-                <div>
-                    <label>Model</label>
-                    <input type="text" name="model" value="qwen3:8b" required>
-                </div>
-                <textarea name="system_prompt" placeholder="System Prompt (Define the tutor's personality and instructions)" required></textarea>
-                <button type="submit">Create Tutor</button>
-            </form>
+                <form id="manual-form-section" method="post" action="{{ url_for('admin_create_tutor') }}"
+                    class="form-grid" style="display: none;">
+                    <div>
+                        <label>Tutor Name</label>
+                        <input type="text" id="tutor_name" name="name" list="tutor-name-suggestions" required
+                            placeholder="e.g. Science Tutor" oninput="validateTutorName()">
+                        <datalist id="tutor-name-suggestions">
+                            {% for t in tutors %}
+                            <option value="{{ t.name }}">
+                                {% endfor %}
+                        </datalist>
+                        <div id="tutor-name-error"
+                            style="color: #ef4444; font-size: 0.85rem; display: none; margin-top: 0.5rem; font-weight: bold;">
+                            Tutor name already exists! Please choose a different name.</div>
+                    </div>
+                    <div>
+                        <label>Model</label>
+                        <select name="model" required
+                            style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: white; outline: none;">
+                            {% for m in available_models %}
+                            <option value="{{ m }}">{{ m }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <textarea id="tutor_system_prompt" name="system_prompt"
+                        placeholder="System Prompt (Define the tutor's personality and instructions)" required
+                        rows="4"></textarea>
+
+                    <input type="hidden" id="tutor_configuration" name="configuration">
+                    <button type="submit" id="btn-create-tutor">Create Tutor</button>
+                </form>
+            </div>
+
         </div>
     </div>
+
+    <script>
+        // Tab switching logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+
+        // Dropdown toggle logic
+        function toggleDropdown(menuId, btnElement = null) {
+            const menu = document.getElementById(menuId);
+            const isShowing = menu.classList.contains('show');
+
+            // Close all dropdowns
+            document.querySelectorAll('.tutor-dropdown-menu').forEach(m => {
+                m.classList.remove('show');
+                m.style.position = '';
+                m.style.top = '';
+                m.style.left = '';
+            });
+
+            // Toggle the target one
+            if (!isShowing) {
+                menu.classList.add('show');
+
+                if (btnElement) {
+                    // Append to body so it breaks out of all overflow/transform boundaries
+                    if (menu.parentElement !== document.body) {
+                        document.body.appendChild(menu);
+                    }
+
+                    // Use fixed positioning to break out of overflow scroll on all screen sizes
+                    const rect = btnElement.getBoundingClientRect();
+                    menu.style.position = 'fixed';
+                    menu.style.top = (rect.bottom + 8) + 'px';
+
+                    // Ensure it doesn't go off the right edge of the screen
+                    const menuWidth = 300; // approximate
+                    if (rect.left + menuWidth > window.innerWidth) {
+                        menu.style.left = (window.innerWidth - menuWidth - 20) + 'px';
+                    } else {
+                        menu.style.left = rect.left + 'px';
+                    }
+                }
+            }
+        }
+
+        // Close dropdowns if clicking outside
+        window.onclick = function (event) {
+            if (!event.target.closest('.tutor-dropdown-container') && !event.target.closest('.tutor-dropdown-menu')) {
+                document.querySelectorAll('.tutor-dropdown-menu').forEach(m => {
+                    m.classList.remove('show');
+                    m.style.position = '';
+                    m.style.top = '';
+                    m.style.left = '';
+                });
+            }
+        }
+
+
+
+
+
+        const existingTutorNames = [{% for t in tutors %}"{{ t.name|replace('"', '\\"') }}".toLowerCase(), {% endfor %}];
+
+        function validateTutorName() {
+            const val = document.getElementById('tutor_name').value.trim().toLowerCase();
+            const errorSpan = document.getElementById('tutor-name-error');
+            const btn = document.getElementById('btn-create-tutor');
+
+            if (existingTutorNames.includes(val)) {
+                errorSpan.style.display = 'block';
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            } else {
+                errorSpan.style.display = 'none';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        }
+
+        // --- AI Tutor Builder Wizard ---
+        let wizardConfig = {
+            learner_profile: { who: '', why: '', objective: '', experience_level: '', current_capabilities: [], target_capabilities: [] },
+            tutor_behavior: { difficulty: 'adaptive', teaching_style: [], feedback_style: [], ask_followups: true, provide_hints: false, provide_model_answers: false, correct_english: false },
+            scope: { mode: 'related_topics_allowed' }
+        };
+        let dynamicCategories = [];
+
+        function openWizard() {
+            document.getElementById('wizardModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeWizard() {
+            document.getElementById('wizardModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function showWizardStep(step) {
+            document.querySelectorAll('.wizard-step').forEach(el => el.style.display = 'none');
+            document.getElementById('wizard-step-' + step).style.display = 'block';
+        }
+
+        async function runWizardStep1() {
+            wizardConfig.learner_profile.who = document.getElementById('wizard-who').value;
+            wizardConfig.learner_profile.why = document.getElementById('wizard-why').value;
+            wizardConfig.learner_profile.objective = document.getElementById('wizard-objective').value;
+
+            if (!wizardConfig.learner_profile.who || !wizardConfig.learner_profile.why || !wizardConfig.learner_profile.objective) {
+                return alert("Please fill all 3 AI Builder fields to continue.");
+            }
+
+            const btn = document.getElementById('btn-step-1');
+            const originalText = btn.innerText;
+            btn.innerText = "Analyzing Learner...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/admin/api/wizard_step_1', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ who: wizardConfig.learner_profile.who, why: wizardConfig.learner_profile.why, objective: wizardConfig.learner_profile.objective })
+                });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+
+                dynamicCategories = data.dynamic_categories || [];
+                renderDynamicCategories();
+                openWizard();
+                showWizardStep(2);
+            } catch (e) {
+                alert(e.message);
+            }
+
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+
+        function renderDynamicCategories() {
+            let html = '';
+            dynamicCategories.forEach((cat, i) => {
+                html += `<div style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                    <label style="display: block; font-weight: bold; margin-bottom: 0.5rem; color: white;">${cat.category_name}</label>`;
+
+                html += `<div style="display: flex; gap: 2rem; margin-bottom: 1rem;">
+                            <div style="flex: 1;">
+                                <label style="display: block; color: var(--primary); margin-bottom: 0.5rem; font-size: 0.9rem;">Current Capabilities (Already Known)</label>
+                                <div id="current-cat-${i}">`;
+                cat.options.forEach((opt) => {
+                    html += `<label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; color: var(--text-muted); font-size: 0.9rem;">
+                        <input type="checkbox" name="current-cat-${i}" value="${opt}"> ${opt}
+                    </label>`;
+                });
+                html += `       </div>
+                                <input type="text" id="other-current-cat-${i}" placeholder="Add other..." style="margin-top: 0.5rem; width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: white; font-size: 0.85rem;">
+                                <button type="button" onclick="addOtherOption('current-cat-${i}')" style="margin-top: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.8rem;">Add</button>
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="display: block; color: #a855f7; margin-bottom: 0.5rem; font-size: 0.9rem;">Target Capabilities (Want to Learn)</label>
+                                <div id="target-cat-${i}">`;
+                cat.options.forEach((opt) => {
+                    html += `<label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; color: var(--text-muted); font-size: 0.9rem;">
+                        <input type="checkbox" name="target-cat-${i}" value="${opt}"> ${opt}
+                    </label>`;
+                });
+                html += `       </div>
+                                <input type="text" id="other-target-cat-${i}" placeholder="Add other..." style="margin-top: 0.5rem; width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: white; font-size: 0.85rem;">
+                                <button type="button" onclick="addOtherOption('target-cat-${i}')" style="margin-top: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.8rem;">Add</button>
+                            </div>
+                         </div>
+                </div>`;
+            });
+            document.getElementById('wizard-dynamic-container').innerHTML = html;
+        }
+
+        function addOtherOption(groupId) {
+            const input = document.getElementById('other-' + groupId);
+            const val = input.value.trim();
+            if (val) {
+                const container = document.getElementById(groupId);
+                container.insertAdjacentHTML('beforeend', `<label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; color: var(--text-muted); font-size: 0.9rem;"><input type="checkbox" name="${groupId}" value="${val}" checked> ${val}</label>`);
+                input.value = '';
+            }
+        }
+
+        function runWizardStep2() {
+            // Save step 2 data
+            wizardConfig.learner_profile.experience_level = document.getElementById('wizard-experience').value;
+
+            wizardConfig.learner_profile.current_capabilities = [];
+            wizardConfig.learner_profile.target_capabilities = [];
+            dynamicCategories.forEach((cat, i) => {
+                let current = [];
+                document.querySelectorAll(`input[name="current-cat-${i}"]:checked`).forEach(el => current.push(el.value));
+                let target = [];
+                document.querySelectorAll(`input[name="target-cat-${i}"]:checked`).forEach(el => target.push(el.value));
+
+                wizardConfig.learner_profile.current_capabilities.push({ category: cat.category_name, items: current });
+                wizardConfig.learner_profile.target_capabilities.push({ category: cat.category_name, items: target });
+            });
+
+            showWizardStep(3);
+        }
+
+        async function runWizardStep3() {
+            wizardConfig.scope.mode = document.getElementById('wizard-scope').value;
+            wizardConfig.tutor_behavior.difficulty = document.getElementById('wizard-difficulty').value;
+
+            let teaching = [];
+            document.querySelectorAll('input[name="wizard-teaching"]:checked').forEach(el => teaching.push(el.value));
+            wizardConfig.tutor_behavior.teaching_style = teaching;
+
+            let feedback = [];
+            document.querySelectorAll('input[name="wizard-feedback"]:checked').forEach(el => feedback.push(el.value));
+            wizardConfig.tutor_behavior.feedback_style = feedback;
+
+            wizardConfig.tutor_behavior.ask_followups = document.getElementById('wizard-followups').checked;
+            wizardConfig.tutor_behavior.provide_hints = document.getElementById('wizard-hints').checked;
+            wizardConfig.tutor_behavior.provide_model_answers = document.getElementById('wizard-model-answers').checked;
+            wizardConfig.tutor_behavior.correct_english = document.getElementById('wizard-english').checked;
+
+            const btn = document.getElementById('btn-step-3');
+            btn.innerText = "Generating System Prompt...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/admin/api/wizard_step_2', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ configuration: wizardConfig })
+                });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+
+                document.getElementById('tutor_name').value = data.suggested_name || "";
+                document.getElementById('tutor_system_prompt').value = data.system_prompt || "";
+                document.getElementById('tutor_configuration').value = JSON.stringify(wizardConfig);
+
+                closeWizard();
+
+                // Toggle sections
+                document.getElementById('ai-builder-section').style.display = 'none';
+                document.getElementById('manual-form-section').style.display = 'grid'; // because it uses .form-grid class
+
+                document.getElementById('tutor_system_prompt').focus();
+            } catch (e) {
+                alert(e.message);
+            }
+            btn.innerText = "Generate System Prompt";
+            btn.disabled = false;
+        }
+    </script>
+
+    <!-- Wizard Modal -->
+    <div id="wizardModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; z-index: 1000; justify-content: center; align-items: center;">
+        <div
+            style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 2rem; width: 800px; max-width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="color: white; margin: 0;">AI Tutor Builder ✨</h2>
+                <button onclick="closeWizard()"
+                    style="background: transparent; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+
+            <!-- Step 2: Dynamic Capabilities -->
+            <div id="wizard-step-2" class="wizard-step" style="display: none;">
+                <h3 style="color: var(--primary); margin-bottom: 1rem; font-size: 1.1rem;">Step 2: Capabilities & Gap
+                    Analysis</h3>
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-muted);">Learner's Experience
+                        Level</label>
+                    <select id="wizard-experience"
+                        style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: white; outline: none;">
+                        <option value="Beginner">Beginner</option>
+                        <option value="Junior">Junior</option>
+                        <option value="Mid-level">Mid-level</option>
+                        <option value="Senior">Senior</option>
+                        <option value="Expert">Expert</option>
+                    </select>
+                </div>
+                <div id="wizard-dynamic-container"></div>
+                <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                    <button type="button" onclick="runWizardStep2()">Next ➔</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Scope & Behavior (Final) -->
+            <div id="wizard-step-3" class="wizard-step" style="display: none;">
+                <h3 style="color: var(--primary); margin-bottom: 1rem; font-size: 1.1rem;">Step 3: Tutor Scope &
+                    Behavior</h3>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label
+                        style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-weight: bold;">Knowledge
+                        Scope</label>
+                    <select id="wizard-scope"
+                        style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: white; outline: none;">
+                        <option value="strict">Strict (Only selected topics)</option>
+                        <option value="related_topics_allowed" selected>Related Topics Allowed (Closely related topics
+                            ok)</option>
+                        <option value="broader_exploration">Broader Exploration (Flexible context)</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label
+                        style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-weight: bold;">Difficulty
+                        Mode</label>
+                    <select id="wizard-difficulty"
+                        style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: white; outline: none;">
+                        <option value="gentle">Gentle</option>
+                        <option value="adaptive" selected>Adaptive</option>
+                        <option value="challenging">Challenging / Strict</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 2rem; margin-bottom: 1.5rem;">
+                    <div style="flex: 1;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-weight: bold;">Teaching
+                            Style</label>
+                        <label style="display: block;"><input type="checkbox" name="wizard-teaching" value="Socratic">
+                            Socratic (Ask questions)</label>
+                        <label style="display: block;"><input type="checkbox" name="wizard-teaching"
+                                value="Direct Explanation"> Direct Explanation</label>
+                        <label style="display: block;"><input type="checkbox" name="wizard-teaching"
+                                value="Hands-on / Practical"> Hands-on / Practical</label>
+                    </div>
+                    <div style="flex: 1;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-weight: bold;">Feedback
+                            Style</label>
+                        <label style="display: block;"><input type="checkbox" name="wizard-feedback"
+                                value="Constructive"> Constructive</label>
+                        <label style="display: block;"><input type="checkbox" name="wizard-feedback"
+                                value="Direct Correction"> Direct Correction</label>
+                        <label style="display: block;"><input type="checkbox" name="wizard-feedback"
+                                value="Encouraging"> Encouraging</label>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label
+                        style="display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-weight: bold;">Additional
+                        Behaviors</label>
+                    <label style="display: block;"><input type="checkbox" id="wizard-followups" checked> Ask Follow-up
+                        Questions</label>
+                    <label style="display: block;"><input type="checkbox" id="wizard-hints"> Provide Hints When
+                        Stuck</label>
+                    <label style="display: block;"><input type="checkbox" id="wizard-model-answers"> Provide Model
+                        Answers After Attempts</label>
+                    <label style="display: block;"><input type="checkbox" id="wizard-english"> Correct English
+                        Grammar/Syntax</label>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; gap: 1rem; margin-top: 2rem;">
+                    <button type="button" onclick="showWizardStep(2)"
+                        style="background: transparent; border: 1px solid var(--card-border);">Back</button>
+                    <button type="button" onclick="runWizardStep3()" id="btn-step-3"
+                        style="background: linear-gradient(135deg, #6366f1, #a855f7);">Generate System Prompt</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Manage Tutor Modal -->
+    <div id="manageTutorModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+        <div
+            style="background: #1e293b; width: 95%; max-width: 850px; max-height: 90vh; overflow-y: auto; border-radius: 16px; border: 1px solid var(--card-border); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+            <div
+                style="padding: 1.5rem; border-bottom: 1px solid var(--card-border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: #1e293b; z-index: 10;">
+                <h2 id="manage-tutor-title" style="margin: 0; font-size: 1.25rem;">Manage Tutor</h2>
+                <button onclick="closeManageTutorModal()"
+                    style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+            </div>
+
+            <div style="padding: 1.5rem;">
+                <form id="manage-tutor-form" method="post" action="" onsubmit="prepareManageFormSubmit(event)">
+                    <div style="margin-bottom: 1.5rem;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; font-weight: bold; color: var(--text-muted);">Tutor
+                            Name</label>
+                        <input type="text" id="manage-tutor-name" name="name" required
+                            style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: white; outline: none;">
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label style="font-weight: bold; color: var(--text-muted);">AI Builder Configuration</label>
+                            <button type="button" onclick="regeneratePromptFromConfig()" id="btn-regen-prompt"
+                                style="padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--primary); background: rgba(99, 102, 241, 0.1); color: var(--primary); font-size: 0.8rem; cursor: pointer; transition: all 0.2s; font-weight: bold;">
+                                🔄 Regenerate System Prompt
+                            </button>
+                        </div>
+                        <div id="manage-tutor-config-container"
+                            style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; border: 1px solid var(--card-border);">
+                            <!-- Dynamic nested form inputs go here -->
+                        </div>
+                        <input type="hidden" name="configuration" id="hidden-tutor-config">
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <label
+                            style="display: block; margin-bottom: 0.5rem; font-weight: bold; color: var(--text-muted);">System
+                            Prompt</label>
+                        <textarea id="manage-tutor-prompt" name="system_prompt" required rows="8"
+                            style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3); color: white; outline: none; resize: vertical; font-family: monospace; font-size: 0.85rem;"></textarea>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button type="submit"
+                            style="padding: 0.6rem 1.2rem; border-radius: 8px; border: none; background: var(--primary); color: white; cursor: pointer; font-weight: bold;">Save
+                            Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function buildJsonEditor(data, path = '') {
+            let isRoot = (path === '');
+            let html = isRoot ? '<div>' : '<div style="margin-left: 12px; border-left: 2px solid rgba(255,255,255,0.1); padding-left: 12px; margin-bottom: 8px;">';
+
+            if (Array.isArray(data)) {
+                if (data.length === 0 || typeof data[0] !== 'object') {
+                    // Array of primitives (or empty)
+                    html += `<div class="primitive-array-container" data-path='${path}' style="background: rgba(0,0,0,0.2); padding: 8px; border-radius: 6px; border: 1px solid var(--card-border);">`;
+                    data.forEach(item => {
+                        let itemStr = String(item).replace(/"/g, '&quot;');
+                        html += `<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;" class="array-item">
+                                    <input type="checkbox" checked class="array-checkbox" style="cursor: pointer;" title="Uncheck to remove">
+                                    <input type="text" class="array-input" value="${itemStr}" style="flex: 1; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.4); color: white; outline: none; font-size: 0.85rem;">
+                                 </div>`;
+                    });
+                    html += `    <div style="margin-top: 8px;">
+                                    <button type="button" onclick="addArrayItem(this)" style="padding: 0.3rem 0.6rem; border-radius: 4px; border: 1px dashed var(--primary); background: transparent; color: var(--primary); font-size: 0.75rem; cursor: pointer;">+ Add Item</button>
+                                 </div>
+                              </div>`;
+                } else {
+                    // Array of objects
+                    let emptyTemplate = {};
+                    if (data.length > 0) {
+                        for (let k in data[0]) {
+                            if (Array.isArray(data[0][k])) emptyTemplate[k] = [];
+                            else if (typeof data[0][k] === 'boolean') emptyTemplate[k] = false;
+                            else if (typeof data[0][k] === 'object') emptyTemplate[k] = {};
+                            else emptyTemplate[k] = "";
+                        }
+                    } else {
+                        emptyTemplate = { "new_category": "", "items": [] };
+                    }
+
+                    html += `<div class="object-array-container" data-path='${path}' data-template='${btoa(JSON.stringify(emptyTemplate))}'>`;
+                    let maxIdx = -1;
+                    data.forEach((item, idx) => {
+                        maxIdx = Math.max(maxIdx, idx);
+                        let itemPath = `${path}[${idx}]`;
+                        html += `<div class="object-array-item" data-idx="${idx}" style="margin-bottom: 15px; padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: rgba(0,0,0,0.15);">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;">Group</span>
+                                        <button type="button" onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1.1rem; line-height: 1;" title="Remove this entire group">&times;</button>
+                                    </div>
+                                    ${buildJsonEditor(item, itemPath)}
+                                 </div>`;
+                    });
+                    html += `    <div style="margin-top: 8px;">
+                                    <button type="button" data-next-idx="${maxIdx + 1}" onclick="addObjectArrayItem(this)" style="padding: 0.3rem 0.6rem; border-radius: 4px; border: 1px dashed var(--primary); background: transparent; color: var(--primary); font-size: 0.75rem; cursor: pointer;">+ Add New Group</button>
+                                 </div>`;
+                    html += `</div>`;
+                }
+            } else if (data !== null && typeof data === 'object') {
+                for (let key in data) {
+                    let val = data[key];
+                    let currentPath = path ? `${path}[${JSON.stringify(key)}]` : `[${JSON.stringify(key)}]`;
+                    let displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                    if (val !== null && typeof val === 'object') {
+                        if (isRoot) {
+                            html += `<div style="margin-bottom: 24px; background: rgba(0,0,0,0.25); border: 1px solid var(--card-border); border-radius: 8px; padding: 16px;">
+                                        <h3 style="margin-top: 0; margin-bottom: 16px; color: white; font-size: 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">${displayKey}</h3>
+                                        ${buildJsonEditor(val, currentPath)}
+                                     </div>`;
+                        } else {
+                            html += `<div style="margin-bottom: 12px;">
+                                        <label style="display: block; margin-bottom: 4px; color: var(--primary); font-size: 0.85rem; font-weight: bold;">${displayKey}</label>
+                                        ${buildJsonEditor(val, currentPath)}
+                                     </div>`;
+                        }
+                    } else if (typeof val === 'boolean') {
+                        html += `<div style="margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" data-type="boolean" data-path='${currentPath}' ${val ? 'checked' : ''} style="cursor: pointer;">
+                                    <label style="color: white; font-size: 0.85rem; cursor: pointer;">${displayKey}</label>
+                                 </div>`;
+                    } else {
+                        let strVal = String(val).replace(/"/g, '&quot;');
+                        let inputHtml = "";
+
+                        if (key === 'experience_level') {
+                            const opts = ["Beginner", "Intermediate", "Advanced", "Expert"];
+                            let optsHtml = opts.map(o => `<option value="${o}" ${strVal === o ? 'selected' : ''}>${o}</option>`).join('');
+                            if (!opts.includes(strVal) && strVal) optsHtml += `<option value="${strVal}" selected>${strVal}</option>`;
+                            inputHtml = `<select data-type="string" data-path='${currentPath}' style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.4); color: white; outline: none; font-size: 0.85rem;"><option value="">Select Level...</option>${optsHtml}</select>`;
+                        } else if (key === 'difficulty') {
+                            const opts = ["adaptive", "easy", "moderate", "hard", "challenge"];
+                            let optsHtml = opts.map(o => `<option value="${o}" ${strVal === o ? 'selected' : ''}>${o.charAt(0).toUpperCase() + o.slice(1)}</option>`).join('');
+                            if (!opts.includes(strVal) && strVal) optsHtml += `<option value="${strVal}" selected>${strVal}</option>`;
+                            inputHtml = `<select data-type="string" data-path='${currentPath}' style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.4); color: white; outline: none; font-size: 0.85rem;">${optsHtml}</select>`;
+                        } else if (key === 'mode') {
+                            const opts = ["related_topics_allowed", "strict_curriculum", "exploratory", "test_prep"];
+                            let optsHtml = opts.map(o => `<option value="${o}" ${strVal === o ? 'selected' : ''}>${o.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>`).join('');
+                            if (!opts.includes(strVal) && strVal) optsHtml += `<option value="${strVal}" selected>${strVal}</option>`;
+                            inputHtml = `<select data-type="string" data-path='${currentPath}' style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.4); color: white; outline: none; font-size: 0.85rem;">${optsHtml}</select>`;
+                        } else {
+                            inputHtml = `<input type="text" data-type="string" data-path='${currentPath}' value="${strVal}" style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.4); color: white; outline: none; font-size: 0.85rem;">`;
+                        }
+
+                        html += `<div style="margin-bottom: 10px;">
+                                    <label style="display: block; margin-bottom: 4px; color: var(--text-muted); font-size: 0.8rem;">${displayKey}</label>
+                                    ${inputHtml}
+                                 </div>`;
+                    }
+                }
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function addArrayItem(btn) {
+            const newItemHtml = `<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;" class="array-item">
+                                    <input type="checkbox" checked class="array-checkbox" style="cursor: pointer;" title="Uncheck to remove">
+                                    <input type="text" class="array-input" value="" placeholder="New item..." style="flex: 1; padding: 0.4rem; border-radius: 4px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.4); color: white; outline: none; font-size: 0.85rem;">
+                                 </div>`;
+            btn.parentElement.insertAdjacentHTML('beforebegin', newItemHtml);
+        }
+
+        function addObjectArrayItem(btn) {
+            const container = btn.closest('.object-array-container');
+            const templateStr = atob(container.dataset.template);
+            const template = JSON.parse(templateStr);
+            const path = container.dataset.path;
+            const idx = parseInt(btn.dataset.nextIdx);
+            btn.dataset.nextIdx = idx + 1;
+
+            const itemPath = `${path}[${idx}]`;
+
+            const newHtml = `<div class="object-array-item" data-idx="${idx}" style="margin-bottom: 15px; padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: rgba(0,0,0,0.15);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <span style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold;">New Group</span>
+                                    <button type="button" onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1.1rem; line-height: 1;" title="Remove this entire group">&times;</button>
+                                </div>
+                                ${buildJsonEditor(template, itemPath)}
+                             </div>`;
+
+            btn.parentElement.insertAdjacentHTML('beforebegin', newHtml);
+        }
+
+        function setDeepValue(obj, pathStr, value) {
+            const keys = pathStr.match(/\["(.*?)"\]|\[(\d+)\]/g).map(k => {
+                if (k.startsWith('["')) return k.slice(2, -2);
+                return parseInt(k.slice(1, -1));
+            });
+            let current = obj;
+            for (let i = 0; i < keys.length - 1; i++) {
+                let key = keys[i];
+                if (current[key] === undefined) {
+                    current[key] = typeof keys[i + 1] === 'number' ? [] : {};
+                }
+                current = current[key];
+            }
+            current[keys[keys.length - 1]] = value;
+        }
+
+        function cleanSparseArrays(obj) {
+            if (Array.isArray(obj)) {
+                return obj.filter(item => item !== undefined && item !== null).map(cleanSparseArrays);
+            } else if (obj !== null && typeof obj === 'object') {
+                for (let key in obj) {
+                    obj[key] = cleanSparseArrays(obj[key]);
+                }
+            }
+            return obj;
+        }
+
+        function getJsonFromEditor() {
+            const container = document.getElementById('manage-tutor-config-container');
+            const obj = {};
+
+            // Gather standard inputs
+            const inputs = container.querySelectorAll('input[data-path], select[data-path]');
+            inputs.forEach(input => {
+                let val = input.dataset.type === 'boolean' ? input.checked : input.value;
+                setDeepValue(obj, input.dataset.path, val);
+            });
+
+            // Gather primitive array containers
+            const arrayContainers = container.querySelectorAll('.primitive-array-container');
+            arrayContainers.forEach(arrContainer => {
+                const path = arrContainer.dataset.path;
+                const items = [];
+                const rows = arrContainer.querySelectorAll('.array-item');
+                rows.forEach(row => {
+                    const checkbox = row.querySelector('.array-checkbox');
+                    const input = row.querySelector('.array-input');
+                    if (checkbox.checked && input.value.trim() !== '') {
+                        items.push(input.value.trim());
+                    }
+                });
+                setDeepValue(obj, path, items);
+            });
+
+            return cleanSparseArrays(obj);
+        }
+
+        function prepareManageFormSubmit(event) {
+            const obj = getJsonFromEditor();
+            document.getElementById('hidden-tutor-config').value = Object.keys(obj).length ? JSON.stringify(obj) : "";
+        }
+
+        function openManageTutorModal(id, name, prompt, config) {
+            const form = document.getElementById('manage-tutor-form');
+            form.action = '/admin/edit_tutor/' + id;
+            document.getElementById('manage-tutor-title').innerText = "Manage " + name;
+            document.getElementById('manage-tutor-name').value = name;
+            document.getElementById('manage-tutor-prompt').value = prompt;
+
+            const container = document.getElementById('manage-tutor-config-container');
+            if (!config || config.trim() === '') {
+                container.innerHTML = "<p style='color: var(--text-muted); font-style: italic; margin: 0;'>Created manually. No AI configuration available.</p>";
+            } else {
+                try {
+                    const parsed = JSON.parse(config);
+                    container.innerHTML = buildJsonEditor(parsed);
+                } catch (e) {
+                    container.innerHTML = "<p style='color: red;'>Invalid JSON configuration</p>";
+                }
+            }
+
+            document.getElementById('manageTutorModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            // Reset scroll position to top
+            const modalContent = document.querySelector('#manageTutorModal > div');
+            if (modalContent) {
+                modalContent.scrollTop = 0;
+            }
+        }
+
+        async function regeneratePromptFromConfig() {
+            const configObj = getJsonFromEditor();
+            if (Object.keys(configObj).length === 0) {
+                alert("No AI configuration available to regenerate from.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-regen-prompt');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "⏳ Generating...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/admin/api/wizard_step_2', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ configuration: configObj })
+                });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+
+                document.getElementById('manage-tutor-prompt').value = data.system_prompt;
+
+                const promptBox = document.getElementById('manage-tutor-prompt');
+                promptBox.style.boxShadow = "0 0 10px var(--primary)";
+                setTimeout(() => promptBox.style.boxShadow = "none", 1000);
+            } catch (e) {
+                alert(e.message);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+        function closeManageTutorModal() {
+            document.getElementById('manageTutorModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    </script>
 </body>
+
 </html>

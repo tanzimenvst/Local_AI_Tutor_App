@@ -4,16 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select Tutor - AI Tutor</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="container">
-        <div class="header-nav">
-            <span>{{ user['display_name'] }}</span>
-            {% if user['is_admin'] %}
-            <a href="{{ url_for('admin') }}" target="_blank">Admin Panel</a>
-            {% endif %}
-            <a href="{{ url_for('logout') }}">Logout</a>
+        <div class="header-nav" style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                <span style="font-size: 1.25rem; font-weight: bold; color: white;">{{ user['display_name'] }}</span>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                {% if user['is_admin'] %}
+                <a href="{{ url_for('admin') }}" target="_blank">Admin Panel</a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
         </div>
 
         <div class="tutor-list">

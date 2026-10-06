@@ -5,22 +5,164 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ tutor['name'] }} - AI Tutor</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .tutor-sidebar { display: none; }
+        .eval-sidebar { display: none; }
+        
+        @media (min-width: 1480px) {
+            .tutor-sidebar {
+                display: flex;
+                position: absolute;
+                right: calc(50% + 416px);
+                top: 2rem;
+                width: 320px;
+                background: var(--card-bg);
+                border: 1px solid var(--card-border);
+                border-radius: 16px;
+                padding: 1.5rem;
+                height: calc(100dvh - 4rem);
+                backdrop-filter: blur(12px);
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                flex-direction: column;
+                z-index: 10;
+            }
+            .eval-sidebar {
+                display: flex;
+                position: absolute;
+                left: calc(50% + 416px);
+                top: 2rem;
+                width: 320px;
+                background: var(--card-bg);
+                border: 1px solid var(--card-border);
+                border-radius: 16px;
+                padding: 1.5rem;
+                height: calc(100dvh - 4rem);
+                backdrop-filter: blur(12px);
+                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                flex-direction: column;
+                z-index: 10;
+            }
+        }
+
+        .sidebar-tutor-item {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+            display: block;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid transparent;
+            font-size: 0.95rem;
+        }
+        .sidebar-tutor-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+            text-decoration: none;
+        }
+        .sidebar-tutor-item.active {
+            background: rgba(129, 140, 248, 0.15);
+            color: white;
+            border-color: rgba(129, 140, 248, 0.3);
+            font-weight: 600;
+        }
+        
+        /* Custom scrollbar for sidebar */
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+        }
+
+        .skill-bar-container {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+            height: 8px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+        .skill-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 1s ease-in-out;
+        }
+        
+        /* Modal Background */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+    </style>
 </head>
 
 <body>
+    <div class="tutor-sidebar">
+        <h2 style="margin-top: 0; margin-bottom: 1.5rem; font-size: 1.15rem; color: white; border-bottom: 1px solid var(--card-border); padding-bottom: 0.75rem;">Your Tutors</h2>
+        <div class="sidebar-scroll" style="flex: 1; overflow-y: auto; padding-right: 0.25rem;">
+            {% for t in tutors %}
+                <a href="{{ url_for('chat', tutor_id=t['id']) }}" class="sidebar-tutor-item {% if t['id'] == tutor['id'] %}active{% endif %}">
+                    {{ t['name'] }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="eval-sidebar">
+        <h2 style="margin-top: 0; margin-bottom: 1.5rem; font-size: 1.15rem; color: white; border-bottom: 1px solid var(--card-border); padding-bottom: 0.75rem;">Skills Evaluation</h2>
+        <div class="sidebar-scroll" style="flex: 1; overflow-y: auto; padding-right: 0.25rem;" id="eval-sidebar-content">
+            {% if eval_data %}
+                {% for category, skills in eval_data.items() %}
+                    <div style="margin-bottom: 1.25rem;">
+                        <h3 style="font-size: 0.85rem; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">{{ category }}</h3>
+                        {% for skill, score in skills.items() %}
+                        <div style="margin-bottom: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                                <span style="color: white;">{{ skill }}</span>
+                                <span style="color: var(--text-muted);">{{ score }}%</span>
+                            </div>
+                            <div class="skill-bar-container">
+                                <div class="skill-bar-fill" style="width: {{ score }}%;"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p style="color: var(--text-muted); font-size: 0.9rem; font-style: italic;">No specific skills configured to track.</p>
+            {% endif %}
+        </div>
+    </div>
+
     <div class="container chat-container">
         <div class="header-nav" style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; margin-bottom: 0.5rem;">
-            <div style="font-size: 1.25rem; font-weight: bold; color: white;">
-                {{ user['display_name'] }}'s {{ tutor['name'] }}
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                <div style="font-size: 1.25rem; font-weight: bold; color: white; line-height: 1;">
+                    {{ user['display_name'] }}'s {{ tutor['name'] }}
+                </div>
             </div>
             
             <div class="dropdown" style="position: relative;">
                 <button id="menuBtn" style="background: none; border: none; font-size: 1.5rem; color: var(--primary); cursor: pointer; padding: 0 0.5rem;">⋮</button>
-                <div id="dropdownMenu" style="display: none; position: absolute; right: 0; top: 100%; background: #1e293b; border: 1px solid var(--card-border); border-radius: 8px; padding: 0.5rem; flex-direction: column; gap: 0.25rem; z-index: 100; min-width: 150px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                <div id="dropdownMenu" style="display: none; position: absolute; right: 0; top: 100%; background: #1e293b; border: 1px solid var(--card-border); border-radius: 8px; padding: 0.5rem; flex-direction: column; gap: 0.25rem; z-index: 100; min-width: 170px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
                     {% if user['is_admin'] %}
                     <a href="{{ url_for('admin') }}" target="_blank" style="color: white; text-decoration: none; padding: 0.5rem; border-radius: 4px; display: block;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">Admin Panel</a>
                     {% endif %}
+                    <a href="#" onclick="openEvalModal(); return false;" class="mobile-only-menu-item" style="color: white; text-decoration: none; padding: 0.5rem; border-radius: 4px; display: block;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">View Evaluation</a>
                     <a href="{{ url_for('home') }}" style="color: white; text-decoration: none; padding: 0.5rem; border-radius: 4px; display: block;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">Switch Tutor</a>
                     <a href="{{ url_for('clear_chat', tutor_id=tutor['id']) }}" style="color: white; text-decoration: none; padding: 0.5rem; border-radius: 4px; display: block;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">Clear Chat</a>
                     <a href="{{ url_for('logout') }}" style="color: #ef4444; text-decoration: none; padding: 0.5rem; border-radius: 4px; display: block;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">Logout</a>
@@ -66,7 +208,45 @@
         </form>
     </div>
 
+    <!-- Evaluation Modal (Mobile) -->
+    <div id="evalModal" class="modal-overlay">
+        <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; width: 100%; max-width: 400px; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); backdrop-filter: blur(12px); max-height: 80vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem; margin-bottom: 1rem;">
+                <h2 style="margin: 0; font-size: 1.25rem; color: white;">Skills Evaluation</h2>
+                <button onclick="closeEvalModal()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+            </div>
+            
+            <div class="sidebar-scroll" style="flex: 1; overflow-y: auto;" id="eval-modal-content">
+                <!-- Content gets cloned here by JS -->
+            </div>
+        </div>
+    </div>
+
     <script>
+        function openEvalModal() {
+            document.getElementById('evalModal').style.display = 'flex';
+            document.getElementById('dropdownMenu').style.display = 'none';
+            // Clone the content from the sidebar to the modal
+            document.getElementById('eval-modal-content').innerHTML = document.getElementById('eval-sidebar-content').innerHTML;
+        }
+
+        function closeEvalModal() {
+            document.getElementById('evalModal').style.display = 'none';
+        }
+        
+        // Hide "View Evaluation" menu item on large screens since they have the sidebar
+        if (window.innerWidth >= 1480) {
+            document.querySelector('.mobile-only-menu-item').style.display = 'none';
+        }
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 1480) {
+                document.querySelector('.mobile-only-menu-item').style.display = 'none';
+                closeEvalModal();
+            } else {
+                document.querySelector('.mobile-only-menu-item').style.display = 'block';
+            }
+        });
+
         const menuBtn = document.getElementById('menuBtn');
         const dropdownMenu = document.getElementById('dropdownMenu');
         
